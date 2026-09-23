@@ -4,6 +4,7 @@ from typing import TypedDict
 import chromadb
 from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
+from prompt import PROMPT_TEMPLATE
 from langgraph.graph import END, START, StateGraph
 BASE_DIR = Path(__file__).parent
 CHROMA_DIR = BASE_DIR / "chroma_db"
@@ -85,11 +86,27 @@ def retrieve_and_answer(state: AssistantState) -> dict:
     chunks = retrieve_chunks(state["query"], top_k=3)
 
     top_chunk = chunks[0]
-    answer = top_chunk["text"]
-    confidence = 1.0
-
     sources = [chunk["document_id"] for chunk in chunks]
 
+    if MOCK_LLM:
+        answer = f"Based on the retrieved context: {top_chunk['text']}"
+        confidence = 1.0
+    else:
+        context = "\n\n".join(
+            f"{chunk['document_id']}: {chunk['text']}"
+            for chunk in chunks
+        )
+
+        prompt = PROMPT_TEMPLATE.format(
+            context=context,
+            query=state["query"]
+        )
+
+        answer = (
+            "Real LLM mode is enabled, but no external LLM provider "
+            "is configured in this offline version."
+        )
+        confidence = 0.5
     return {
         "retrieved_chunks": chunks,
         "answer": answer,
