@@ -2,11 +2,11 @@
 
 This repository contains my capstone project with three modules:
 
-* `data_pipeline` – scraping, cleaning, database and data analysis
-* `analytics` – Titanic dataset analysis and machine learning
-* `support_assistant` – a simple Zepto policy support assistant
+* `data_pipeline` – scraping, cleaning, SQLite and data analysis
+* `analytics` – Titanic EDA and machine learning
+* `support_assistant` – Zepto policy support assistant
 
-## Project Structure
+## Repository Structure
 
 ```text
 .
@@ -17,129 +17,187 @@ This repository contains my capstone project with three modules:
 └── support_assistant/
 ```
 
+## Setup
+
+I used **separate `requirements.txt` files for each module**. There is no single consolidated requirements file.
+
+Install the requirements for the module you want to run.
+
 ## 1. Data Pipeline
 
-This module works with book data from Books to Scrape.
+### What I did
 
-The main steps are:
+I collected book data from Books to Scrape.
 
-1. Scrape the first 5 pages of the website.
-2. Collect 100 books.
-3. Clean the data.
-4. Convert the price from GBP to INR.
-5. Store the data in SQLite.
-6. Run SQL queries.
-7. Perform similar analysis using Pandas.
-8. Compare SQL JOIN results with Pandas merge.
+The pipeline:
 
-Main files include:
+1. Scrapes the first 5 pages.
+2. Collects 100 books.
+3. Saves the raw data.
+4. Cleans the book data.
+5. Converts GBP prices to INR using the fixed rate `1 GBP = 105.50 INR`.
+6. Stores the cleaned data in SQLite.
+7. Runs SQL queries.
+8. Performs the analysis again using Pandas.
+9. Compares the SQL JOIN result with `pandas.merge()`.
 
-* `scrape_pipeline.py`
-* `clean_data.py`
-* `database.py`
-* `queries.py`
-* `pandas_analysis.py`
+### Design decisions
 
-The module also contains the raw and cleaned CSV files, SQLite database and query output.
+I used separate `categories` and `books` tables instead of keeping the category name repeated in every book row. The relationship is maintained using a primary key and foreign key.
 
-For more details, see [`data_pipeline/README.md`](data_pipeline/README.md).
+For parsing, the `£` symbol is removed from prices and the value is converted to numeric. Ratings such as `One`, `Two`, `Three`, `Four`, and `Five` are converted to integers from 1 to 5. Availability text is converted to a boolean `in_stock` value.
+
+### Run
+
+From the project root:
+
+```bash
+pip install -r data_pipeline/requirements.txt
+
+python data_pipeline/scrape_pipeline.py
+python data_pipeline/clean_data.py
+python data_pipeline/database.py
+python data_pipeline/queries.py
+python data_pipeline/pandas_analysis.py
+```
+
+The module creates:
+
+* `raw_books.csv`
+* `cleaned_books.csv`
+* `books.db`
+* `sql_query_outputs.txt`
+
+More details are available in [`data_pipeline/README.md`](data_pipeline/README.md).
 
 ## 2. Analytics
 
-This module uses the Titanic dataset for EDA and machine learning.
+### What I did
 
-### EDA
+I used the Titanic dataset for EDA and machine learning.
 
-The analysis includes:
+The EDA includes:
 
-* Dataset information and missing values
+* Missing-value analysis
 * Data cleaning
 * Age and fare analysis
 * Survival analysis
 * Multivariate analysis
 * Correlation analysis
-* Standardization for EDA
-* Charts and visualizations
+* Standardization
+* Visualizations
 
-### Machine Learning
-
-The classification models used are:
+The machine-learning part includes:
 
 * Logistic Regression
 * Decision Tree
 * Random Forest
 * Tuned Random Forest
-
-The models are evaluated using accuracy, precision, recall, F1 score and ROC-AUC.
-
-I also tested two ways of handling class imbalance:
-
-* Class weights
+* Class-weight comparison
 * SMOTE
+* Multivariate Linear Regression
 
-For regression, I used Multivariate Linear Regression to predict fare.
+### Design decisions
 
-The regression metrics are:
+I kept the raw Titanic dataset in `analytics/titanic.csv` as the offline fallback. The modeling notebook uses this saved CSV instead of loading the network dataset again.
 
-* MAE
-* RMSE
-* R²
-* Adjusted R²
+The train/test split is stratified on the survival target and is done before preprocessing. Imputation, encoding and scaling are fitted only on the training data using pipelines.
 
-The saved best pipeline is:
+The final fitted preprocessing and model pipeline is saved as:
 
 ```text
 analytics/best_pipeline.joblib
 ```
 
-The notebooks are:
+### Run
 
-```text
-01_eda.ipynb
-02_modeling.ipynb
+Install the requirements:
+
+```bash
+pip install -r analytics/requirements.txt
 ```
 
-For more details, see [`analytics/README.md`](analytics/README.md).
+Open and run the notebooks in this order:
+
+```text
+analytics/01_eda.ipynb
+analytics/02_modeling.ipynb
+```
+
+The modeling notebook also reloads the saved pipeline and tests it on raw test rows.
+
+More details are available in [`analytics/README.md`](analytics/README.md).
 
 ## 3. Support Assistant
 
-This module is a simple support assistant based on Zepto policy documents.
+### What I did
 
-It uses 8 local policy documents and stores their embeddings in ChromaDB.
+I built a Zepto policy assistant using 8 local policy documents.
 
 The main flow is:
 
 ```text
-User Query
+Ingestion
    ↓
-Intent Classification
+Embedding
    ↓
-Policy Question?
+Retrieval
    ↓
-Retrieve Relevant Document
-   ↓
-Generate Structured Response
+Generation
 ```
 
-The project uses:
+### Design decisions
 
-* ChromaDB
-* Sentence Transformers
-* LangGraph
-* Pydantic
-* FastAPI
-* Docker
+The policy documents are stored locally so that the basic version can work without a paid external service.
 
-The assistant can also run in offline mock mode.
+`ingest.py` creates embeddings using `all-MiniLM-L6-v2` and stores them in ChromaDB.
 
-For more details, see [`support_assistant/README.md`](support_assistant/README.md).
+`rag.py` uses keyword-based intent classification and LangGraph to route policy and general questions.
+
+The default `MOCK_LLM=1` mode does not make an external LLM call. Policy answers are generated from the top retrieved chunk, while unrelated questions use a fixed response.
+
+The optional `MOCK_LLM=0` branch prepares the structured prompt for a real LLM path. `generate_with_retry()` is included to validate and retry an invalid structured response.
+
+Pydantic is used to validate the final response, and FastAPI provides the `/ask` endpoint.
+
+### Run
+
+From the project root:
+
+```bash
+cd support_assistant
+pip install -r requirements.txt
+python ingest.py
+python -m uvicorn main:app --host 0.0.0.0 --port 7860
+```
+
+Open:
+
+```text
+http://localhost:7860/docs
+```
+
+### Docker
+
+From the `support_assistant` folder:
+
+```bash
+docker build -t zepto-support-assistant .
+docker run --rm -p 7860:7860 zepto-support-assistant
+```
+
+Then open:
+
+```text
+http://localhost:7860/docs
+```
+
+More details are available in [`support_assistant/README.md`](support_assistant/README.md).
 
 ## Technologies
 
-Python, Pandas, NumPy, SQLite, Seaborn, Matplotlib, Scikit-learn, imbalanced-learn, ChromaDB, LangGraph, FastAPI and Docker.
+Python, Pandas, NumPy, SQLite, BeautifulSoup, Seaborn, Matplotlib, Scikit-learn, imbalanced-learn, ChromaDB, Sentence Transformers, LangGraph, Pydantic, FastAPI and Docker.
 
-## Running the Project
+## Submission
 
-Each module has its own `requirements.txt` file and README with the commands needed to run it.
-
-This repository is intended to be submitted as **one GitHub repository containing all three modules**.
+This project is submitted as **one public GitHub repository** containing all three modules.
