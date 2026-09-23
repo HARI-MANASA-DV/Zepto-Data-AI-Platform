@@ -51,7 +51,11 @@ print("\n========== QUERY 2 ==========")
 print(query2)
 print("OUTPUT:")
 print(result2.to_string(index=False))
-
+output_file.write("\n========== QUERY 2 ==========\n")
+output_file.write(query2)
+output_file.write("\nOUTPUT:\n")
+output_file.write(result2.to_string(index=False))
+output_file.write("\n")
 
 # ==========================================================
 # Query 3 — DISTINCT
@@ -69,7 +73,11 @@ print("\n========== QUERY 3 ==========")
 print(query3)
 print("OUTPUT:")
 print(result3.to_string(index=False))
-
+output_file.write("\n========== QUERY 3 ==========\n")
+output_file.write(query3)
+output_file.write("\nOUTPUT:\n")
+output_file.write(result3.to_string(index=False))
+output_file.write("\n")
 
 # ==========================================================
 # Query 4 — BETWEEN
@@ -88,7 +96,11 @@ print("\n========== QUERY 4 ==========")
 print(query4)
 print("OUTPUT:")
 print(result4.to_string(index=False))
-
+output_file.write("\n========== QUERY 4 ==========\n")
+output_file.write(query4)
+output_file.write("\nOUTPUT:\n")
+output_file.write(result4.to_string(index=False))
+output_file.write("\n")
 
 # ==========================================================
 # Query 5 — IN
@@ -107,7 +119,11 @@ print("\n========== QUERY 5 ==========")
 print(query5)
 print("OUTPUT:")
 print(result5.to_string(index=False))
-
+output_file.write("\n========== QUERY 5 ==========\n")
+output_file.write(query5)
+output_file.write("\nOUTPUT:\n")
+output_file.write(result5.to_string(index=False))
+output_file.write("\n")
 
 # ==========================================================
 # Query 6 — JOIN
@@ -133,7 +149,11 @@ print("\n========== QUERY 6 ==========")
 print(query6)
 print("OUTPUT:")
 print(result6.to_string(index=False))
-
+output_file.write("\n========== QUERY 6 ==========\n")
+output_file.write(query6)
+output_file.write("\nOUTPUT:\n")
+output_file.write(result6.to_string(index=False))
+output_file.write("\n")
 output_file.close()
 
 print(f"\nSQL query outputs saved to {OUTPUT_PATH}")

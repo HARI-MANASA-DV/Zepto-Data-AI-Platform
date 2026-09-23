@@ -130,7 +130,17 @@ print(sql_join_result.to_string(index=False))
 sql_comparison = sql_join_result.reset_index(drop=True)
 
 pandas_comparison = merged_result.reset_index(drop=True)
+# Show SQL JOIN and pandas merge() results side by side
+side_by_side = pd.concat(
+    [
+        sql_comparison.add_prefix("SQL_"),
+        pandas_comparison.add_prefix("Pandas_")
+    ],
+    axis=1
+)
 
+print("\n========== SQL JOIN vs pandas.merge() SIDE BY SIDE ==========")
+print(side_by_side.to_string(index=False))
 # Check whether both results are equivalent
 are_equal = sql_comparison.equals(pandas_comparison)
 
